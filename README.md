@@ -1,64 +1,70 @@
 # Glyph
 
-A tiny Go-like scripting language that compiles to WASM, enabling portable sandboxed behavior modules in capability-secure hosts.
+Glyph is a lightweight WASM-first scripting language designed to act as a modern Lua-like runtime for Rust systems and web scripting.
 
-Glyph is small, embeddable, and WASM-first. It targets use cases such as Rust game engines, plugin systems, automation, and browser UI scripting. Glyph is complementary to Go + Templ + HTMX stacks and is intentionally minimal — not a VM, JIT, or large ecosystem language.
+A tiny Go-like scripting language that compiles to WASM and runs in capability-secure hosts.
 
----
+Glyph is built for small embeddable scripting tasks: Rust game engines, plugin systems, automation, browser UI scripting, and Go + Templ + HTMX applications that need a compact behavior layer.
 
-## Key Principles
+## Architecture
 
-- Small and embeddable: suitable for UI logic, game rules, and plugins.
-- WASM-first: production artifacts are portable WASM modules.
-- Capability-secure: hosts explicitly grant access to IO, timers, storage, and engine hooks.
-- Minimal language surface: focus on a concise scripting DSL.
+Glyph follows a single production path:
 
----
-
-## Project Structure (simplified)
-
-```
-spec/        → Language, AST, manifest, ABI specifications
-sparq/       → Rust compiler (AST → WASM) and packaging
-lsp/         → Minimal language server (optional)
-examples/    → Integration examples (hosts, web)
-docs/        → Guides and architecture
+```text
+Glyph source
+→ Rust compiler
+→ WASM module
+→ Host runtime
 ```
 
----
+The host runtime provides capabilities such as DOM access, timers, storage, and engine hooks. Glyph stays small by treating WASM as the execution runtime instead of building its own execution environment.
 
-## Getting Started (developer preview)
+## Language Scope
 
-Clone the repository:
+Glyph is intentionally small. The core language centers on:
 
-```bash
-git clone https://github.com/divijg19/glyph
-cd glyph
+- numbers
+- strings
+- booleans
+- lists
+- maps
+- functions
+- modules
+- control flow through `if`, `for`, `return`, `break`, and `continue`
+
+The keyword set is intentionally minimal.
+
+## Project Structure
+
+```text
+spec/        → language, AST, manifest, and ABI specifications
+sparq/       → Rust compiler and WASM packaging
+lsp/         → minimal editor tooling guidance
+docs/        → architecture and onboarding guides
+examples/    → host integration examples
 ```
 
-Build the Rust compiler or WASM artifacts using standard Rust tooling (examples and scripts in `sparq/`).
+## Development Model
 
-Hot reload in development is intended to work via WASM module replacement: edit a glyph file → compile to WASM → swap module in the host.
+Development should stay simple:
 
----
+```text
+edit glyph file
+→ compile to wasm
+→ hot reload module
+```
 
-## Roadmap (high level)
+Hot reload is performed by replacing the compiled WASM module in the host.
 
-- Establish a small, stable language spec and canonical AST
-- Implement a Rust-based compiler that emits WASM modules
-- Provide minimal host integration examples (Rust hosts, web)
-- Offer basic editor tooling (minimal LSP) and examples
-- Harden security (capabilities, quotas) and stabilize v1
+## Status
 
-More details in `VISION.md` and `ARCHITECTURE.md`.
+Glyph is intentionally scoped to remain small, portable, and achievable. The target shape is a focused compiler and spec set, not a large language platform.
 
----
+See `VISION.md`, `ARCHITECTURE.md`, and `spec/` for the detailed project direction.
 
 ## Contributing
 
-Please see `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md` for contribution guidelines.
-
----
+See `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.
 
 ## License
 

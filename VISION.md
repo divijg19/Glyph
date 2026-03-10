@@ -1,95 +1,75 @@
 # Glyph - Vision
 
-Glyph is a small, WASM-first, embeddable scripting language designed to be tiny, portable, and capability-safe. It targets lightweight scripting and plugin scenarios such as Rust game engines, plugin systems, automation, and browser UI scripting. Glyph intentionally keeps scope minimal so it can be embedded in hosts with clear capability boundaries.
+Glyph is a lightweight WASM-first scripting language designed to act as a modern Lua-like runtime for Rust systems and web scripting.
 
----
+Its role is narrow and intentional: provide a small, embeddable scripting layer with Go-like syntax and capability-secure host integration.
 
-## The Problem `Glyph` Solves
+## Canonical Scope
 
-Modern stacks suffer from fragmentation:
+Glyph is for:
 
-* UI logic lives in one language
-* Backend plugins live in another
-* Configuration is YAML or JSON
-* Scripting uses ad-hoc JS, Lua, or unsafe eval
-* Plugins are hard to sandbox
-* Hot reload is inconsistent across layers
+- Rust game engines
+- plugin systems
+- automation
+- browser UI scripting
+- Go + Templ + HTMX applications that need small behavior modules
 
-Existing options fail because they are either:
+Glyph should remain small, portable, and embeddable.
 
-* too large (JavaScript),
-* too unsafe (dynamic eval),
-* too restrictive (Starlark),
-* too low-level (Rust/C++),
-* or not portable (platform-locked DSLs).
+## Core Model
 
-**`Glyph` is designed specifically to live in the middle.**
+Glyph follows one architecture:
 
----
+```text
+Glyph source
+→ Rust compiler
+→ WASM module
+→ Host runtime
+```
 
-## Purpose
+The host runtime owns execution and exposes capability APIs such as DOM access, timers, storage, and engine hooks.
 
-`Glyph` is intended as:
+## Design Direction
 
-- A tiny scripting language for UI logic, automation, and game rules
-- A plugin language for Rust hosts and other capability-secure runtimes
-- A WASM compilation target for portable, sandboxed modules
+Glyph stays useful by staying small:
 
-Glyph is not a general-purpose systems language, VM, or frontend framework.
+- a compact language surface
+- a single compiler pipeline
+- a small spec set
+- host-controlled effects through capabilities
+- fast development through WASM rebuild and module replacement
 
----
+## Language Shape
 
-## Design Philosophy
+Target features:
 
-- Complement, don’t compete: host languages (Go, Rust, etc.) remain the place for systems and heavy lifting.
-- Minimal surface: few keywords, a compact AST, and a deliberately small standard library.
-- WASM as the production contract: compile to WASM, run in host-provided environments.
-- Security by design: capabilities and manifests govern side effects.
+- numbers
+- strings
+- booleans
+- lists
+- maps
+- functions
+- modules
+- control flow with `if`, `for`, `return`, `break`, and `continue`
 
----
+The keyword set should stay close to 10–12 keywords.
 
 ## Development Model
 
-Edit a Glyph source file → compile to WASM using the Rust compiler → hot-reload the module in the host via WASM module replacement.
+The intended workflow is:
 
-Hot reload is achieved by swapping WASM modules in the host; Glyph does not rely on a separate interpreter for dev-mode execution.
+```text
+edit glyph file
+→ compile to wasm
+→ hot reload module
+```
 
----
+Hot reload happens by replacing the compiled WASM module in the host.
 
-## Language Surface (intent)
+## Boundaries
 
-Keep the language extremely small. Target values and structures include:
-
-- numbers, strings, booleans
-- lists (arrays) and maps (string-keyed)
-- functions and modules
-- control flow: `if`, `for`, `return`, `break`, `continue`
-
-Keyword set should remain minimal (approx. 10–12 keywords).
-
----
-
-## Target Architecture
-
-Glyph source → Rust compiler → WASM module → Host runtime (provides capabilities such as DOM, timers, storage, engine hooks).
-
-Glyph itself does not implement a VM, scheduler, GC, or a custom runtime — WASM is the execution runtime.
-
----
-
-## Non-Goals
-
-Glyph intentionally avoids:
-
-- Interpreter-first or dual-runtime architectures
-- JITs, custom VMs, or language-specific schedulers
-- Complex type systems, macros, or generics
-- Large package registries or sweeping ecosystem ambitions
-
-These directions would contradict Glyph’s goals of smallness and embeddability.
-
----
+Glyph is not trying to become a large general-purpose platform. If a feature expands implementation size or runtime surface beyond an embeddable scripting language, it is likely outside scope.
 
 ## Guiding Principle
 
-Glyph must remain small, portable, and embeddable: useful without being burdensome to host or maintain.
+Glyph should add flexibility to a host without adding architectural weight.

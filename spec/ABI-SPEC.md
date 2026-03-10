@@ -27,7 +27,7 @@ Each module instance runs with a host-provided execution context containing:
 
 - capability table
 - resource limits
-- host function registry
+- host function table
 - error handling hooks
 
 This context is provided at instantiation by the host.
@@ -81,9 +81,7 @@ Rules:
 
 - Calls fail if the capability is not granted
 - Arguments are validated at the boundary
-- Hosts control scheduling and any asynchronous behavior
-
-The ABI does not mandate a particular async model; hosts may expose asynchronous patterns via handles or out-of-band conventions.
+- Hosts control invocation and lifecycle behavior at the boundary
 
 ---
 

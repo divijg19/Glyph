@@ -1,188 +1,55 @@
-# **Glyph Toolchain — rig Integration**
+# Glyph Toolchain
 
-> **Status:** Draft (authoritative for build, packaging, and orchestration)
+This document describes the minimal toolchain shape for Glyph.
 
-This document defines the **Glyph toolchain**, implemented in **Go** and integrated with **rig**.
+## Role
 
-The toolchain is responsible for turning Glyph source into runnable artifacts, validating security contracts, and orchestrating execution across environments.
+The toolchain exists to:
 
----
+- compile Glyph source to WASM
+- validate manifests and ABI compatibility
+- package artifacts for host loading
+- inspect module metadata during development
 
-## 1. Role of the Toolchain
+The toolchain does not define language semantics.
 
-The Glyph toolchain exists to:
+## Build Model
 
-* Build Glyph source into canonical artifacts
-* Validate specs, manifests, and compatibility
-* Package and sign modules
-* Orchestrate execution (dev and prod)
-* Provide a consistent CLI and workflows
-* Integrate with registries and CI systems
+The expected build path is:
 
-The toolchain does **not** define language semantics.
-
----
-
-## 2. Design Principles
-
-* **Spec-driven** — tooling consumes `spec/`, never invents behavior
-* **Deterministic** — identical inputs produce identical artifacts
-* **Host-agnostic** — works for Flutter, servers, CLI, and web
-* **Composable** — integrates cleanly with existing rig workflows
-* **Fail-fast** — invalid modules are rejected early
-
----
-
-## 3. CLI Overview
-
-Primary commands (names illustrative):
-
-```bash
-glyph build        # compile source → .rwm
-glyph dev          # run via Wisp (dev mode)
-glyph run          # execute .rwm via Sparq
-glyph publish      # sign and publish module
-glyph inspect      # inspect AST / manifest / capabilities
-glyph test         # run module tests
+```text
+source
+→ AST
+→ WASM
+→ packaged artifact
 ```
 
-These commands are available:
+## Command Shape
 
-* directly as `glyph`
-* or namespaced under rig: `rig glyph build`
+Illustrative commands:
 
----
+```bash
+glyph build
+glyph inspect
+glyph test
+```
 
-## 4. Build Pipeline
+If the project keeps `rig` integration, it should remain a thin wrapper around the same compiler and packaging flow.
 
-### 4.1 Development Build
-
-* Source → Wisp parser
-* AST emitted and cached
-* Interpreted directly
-* Hot reload enabled
-
-### 4.2 Production Build
-
-* Source → canonical AST
-* AST validated against spec
-* Sparq compiler invoked
-* `.rwm` produced (WASM + manifest)
-* Integrity metadata attached
-
----
-
-## 5. Validation Responsibilities
+## Validation
 
 The toolchain validates:
 
-* Language spec version compatibility
-* AST structural correctness
-* Manifest schema correctness
-* Capability declarations
-* Export consistency
-* Resource limit sanity
-* ABI compatibility
+- language and manifest versions
+- AST structure
+- export declarations
+- capability declarations
+- ABI compatibility
 
-Validation failures stop the pipeline.
+## Packaging
 
----
+Artifacts may bundle the compiled WASM module with a manifest and integrity metadata. Packaging should remain deterministic.
 
-## 6. Packaging Format
+## Constraint
 
-The toolchain produces `.rwm` artifacts:
-
-```
-example.rwm
-├── module.wasm
-├── manifest.json
-└── source.tar.gz   (optional)
-```
-
-Packaging is deterministic and reproducible.
-
----
-
-## 7. Signing & Integrity
-
-* Toolchain may sign artifacts using local keys
-* Supports multiple signatures
-* Enforces integrity policy on publish/install
-* Integrates with registry trust models
-
-Signing is optional but recommended.
-
----
-
-## 8. Registry Integration
-
-The toolchain integrates with a Glyph registry to:
-
-* Publish modules
-* Fetch dependencies
-* Resolve versions
-* Verify signatures
-* Cache artifacts locally
-
-Registry policy is configurable.
-
----
-
-## 9. Execution Orchestration
-
-The toolchain orchestrates execution by:
-
-* Selecting runtime (Wisp or Sparq)
-* Providing host bindings
-* Applying sandbox policies
-* Collecting metrics
-* Handling lifecycle events
-
-The toolchain never executes code directly.
-
----
-
-## 10. CI & Automation
-
-Designed for CI use:
-
-* Non-interactive mode
-* Deterministic output
-* Machine-readable diagnostics
-* Artifact caching
-
-Ideal for:
-
-* build pipelines
-* security audits
-* reproducible releases
-
----
-
-## 11. Extensibility
-
-Toolchain supports extensions for:
-
-* custom registries
-* policy plugins
-* alternative runtimes
-* organization-specific workflows
-
-Extensions must not bypass security guarantees.
-
----
-
-## 12. Non-Goals
-
-The toolchain does not:
-
-* Define runtime semantics
-* Perform optimization
-* Manage host infrastructure
-* Replace general-purpose build systems
-
----
-
-## 13. Invariant
-
-> **The toolchain must never weaken the guarantees provided by the spec or runtime.**
+Tooling should remain small and focused on the compile-and-load workflow rather than growing into a large orchestration layer.

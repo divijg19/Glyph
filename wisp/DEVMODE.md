@@ -1,27 +1,23 @@
-# Development Workflow (replaces historical dev interpreters)
+# Development Workflow Notes
 
-> Note: the repository previously contained a separate Dart-based development interpreter. Glyph's canonical approach is now WASM-first; development workflows should favor fast compilation to WASM and host-driven module replacement.
+Glyph development should use the same fundamental path as production:
 
-## Purpose
+```text
+edit source
+→ compile to wasm
+→ replace module in the host
+```
 
-This document describes the recommended development workflow: fast iteration via quick WASM builds and hot-reloading modules in the host. Glyph does not depend on a separate interpreter for dev-mode execution.
+## Goals
 
-## Recommended Dev Flow
+- short rebuild cycles
+- host-driven hot reload
+- behavior that stays aligned with the compiled output
 
-1. Edit Glyph source
-2. Compile with the Rust compiler (`sparq`) to a WASM module
-3. Reload the module in a running host (hot-replace the WASM instance)
+## Hot Reload
 
-Hosts may provide convenience tooling (file watchers, small runtimes) to streamline the cycle, but such tooling should still use the WASM artifacts and respect manifest capabilities.
+Hot reload is done by replacing the compiled module in the host. Hosts may preserve state where it is safe to do so.
 
-## REPL & Debugging
+## Debugging
 
-REPLs or quick-eval tools are allowed for developer convenience, but they must not diverge from the canonical compiler semantics. Hosts should offer source-mapped errors and simple inspection hooks.
-
-## Hot Reload Guarantees
-
-Hot reload by module replacement is a best-effort developer feature. Hosts decide whether to preserve state or fully restart modules when swapping WASM instances.
-
-## Deprecated: Dart-based Dev Interpreter
-
-Any historical Dart-based interpreter or tooling in the tree is considered deprecated under the simplified WASM-first scope. Focus new development on the Rust-based compilation and WASM module workflow.
+Development tooling should emphasize fast rebuilds, source-mapped diagnostics, and simple inspection of module state.

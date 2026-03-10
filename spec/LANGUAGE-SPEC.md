@@ -1,95 +1,26 @@
-# **Glyph — Language Specification**
+# Glyph - Language Specification
 
-> **Status:** Draft (authoritative; implementations must conform)
+> Status: Draft
 
-This document defines the **syntax, semantics, and core concepts** of the Glyph language.
-It is the **canonical definition** of what Glyph programs mean.
+Glyph is a small embeddable scripting language with a deliberately narrow core.
 
-All implementations (Wisp, Sparq, tooling, LSP) must follow this specification.
+## Scope
 
----
+Glyph programs are modules compiled to WASM and loaded by hosts. The language is intended for small scripting tasks, plugin logic, automation, and browser-side behavior.
 
-## 1. Scope of the Language
+## Core Values
 
-Glyph is a **small, embeddable scripting and module language** designed for:
+Glyph values are:
 
-* UI scripting
-* Application plugins
-* Game logic
-* Server-side extensions
-* Configuration and automation
-* WASM-based portable modules
+- simplicity
+- readability
+- predictable execution
+- portable WASM output
+- capability-controlled side effects
 
-Glyph is **not** a systems language, and **not** a replacement for Go, Rust, or Dart.
+## Program Model
 
----
-
-## 2. Design Goals
-
-Glyph prioritizes:
-
-* Simplicity and readability
-* Predictable execution
-* Sandboxed, capability-based effects
-* WASM portability
-* Excellent developer experience
-
-Glyph intentionally avoids:
-
-* Implicit global state
-* Ambient authority
-* Hidden runtime behavior
-* Large standard libraries
-
----
-
-## 3. Program Structure
-
-A Glyph program is a **module**.
-
-A module consists of:
-
-* Declarations
-* Imports
-* Exports
-* Executable statements
-* Optional metadata (via manifest, not source)
-
-Example:
-
-```glyph
-# Glyph — Language Specification (Minimal)
-
-> Status: Draft — the language spec is intentionally small and authoritative for compiler and tooling behavior.
-
-This document captures the minimal language surface for Glyph: a compact scripting DSL that compiles to WASM and is intended for embedding in capability-secure hosts.
-
----
-
-## 1. Scope
-
-Glyph is a tiny, embeddable scripting language aimed at:
-
-- UI scripting and browser-side behavior (via WASM)
-- Plugin logic for Rust hosts and game engines
-- Simple automation and configuration tasks
-
-Glyph is not a full systems language or a VM — it targets small, auditable modules.
-
----
-
-## 2. Design Goals
-
-- Keep the syntax and semantics minimal and easy to implement
-- Ensure portability by targeting WASM
-- Enforce capability-based side effects via host manifests
-- Avoid complex type systems, macros, or advanced language features
-
----
-
-## 3. Program Model
-
-A Glyph program is a module. Modules contain imports, declarations, and exports. Hosts decide which exported functions to invoke.
+A Glyph source file defines a module. A module can contain imports, declarations, exports, and executable statements.
 
 Example:
 
@@ -97,129 +28,81 @@ Example:
 import io
 
 export fn main() {
-  let x = 42
-  io.log(x)
+  let message = "Hello, Glyph"
+  io.log(message)
 }
 ```
 
----
+## Keywords
 
-## 4. Lexical Elements
+The keyword set should stay small. A representative set is:
 
-Identifiers: start with a letter or `_`, may contain letters, digits, and `_`, and are case-sensitive.
-
-Literals: numbers (64-bit float), strings (UTF-8), booleans, `nil`, arrays, and maps.
-
----
-
-## 5. Keywords
-
-Glyph keeps keywords to a minimum. An initial set:
-
-```
-fn  let  export  import
-if  else for  return
-break  continue
-true  false  nil
-```
-
-This set is intentionally small (≈10–12 keywords).
-
----
-
-## 6. Values & Types
-
-Glyph is dynamically typed. Core runtime values:
-
-- number, string, boolean, nil
-- list (array), map (string-keyed)
-- function
-
-Type errors are runtime errors.
-
----
-
-## 7. Variables
-
-Variables are declared with `let` and are block-scoped. They are immutable by default.
-
-```glyph
-let x = 10
+```text
+fn
+let
+if
+else
+for
+return
+break
+continue
+import
+export
+true
+false
+nil
 ```
 
-Shadowing is permitted.
+## Values
 
----
+Glyph values include:
 
-## 8. Functions
+- numbers
+- strings
+- booleans
+- nil
+- lists
+- maps
+- functions
 
-Functions are first-class and declared with `fn`.
+Glyph is dynamically typed.
 
-```glyph
-fn add(a, b) { return a + b }
-let sq = fn(x) { x * x }
-```
+## Variables
 
-Exported functions are declared with `export fn`.
+Variables are declared with `let` and use block scope.
 
----
+## Functions
 
-## 9. Control Flow
+Functions are first-class values and are declared with `fn`. Exported entry points are declared with `export fn`.
 
-Glyph supports only a small set of control constructs:
+## Control Flow
 
-- `if` / `else`
-- `for` (iteration over arrays or ranges)
+Control flow is intentionally limited to:
+
+- `if`
+- `for`
 - `return`
-- `break` / `continue` inside loops
+- `break`
+- `continue`
 
-Examples:
+## Imports and Capabilities
 
-```glyph
-if x > 0 { ... } else { ... }
-for item in items { ... }
-```
+Imports refer to host-provided namespaces. Capabilities are declared in the module manifest and granted by the host.
 
-There is no `while` loop, no `async/await`, and no built-in concurrency model in the core language. Hosts provide any needed scheduling or async behavior.
+## Errors
 
----
+Errors propagate to the host when unhandled.
 
-## 10. Imports & Host Capabilities
+## Execution Semantics
 
-Imports refer to host-provided capability namespaces. The module manifest declares capabilities; hosts grant them at load time. Source code cannot grant itself capabilities.
+- module execution is isolated
+- effects go through host capabilities
+- hosts decide resource limits and execution policy
 
-```glyph
-import io
-io.log("hi")
-```
+## Relationship to Other Specs
 
----
+AST structure, ABI details, and manifest rules are defined in `AST-SPEC.md`, `ABI-SPEC.md`, and `MANIFEST-SPEC.md`.
 
-## 11. Errors
+## Rule
 
-Errors are values that propagate to the host when unhandled. Hosts decide how to map or present errors.
-
----
-
-## 12. Execution Semantics
-
-- Single-threaded execution per module instance (from the language perspective)
-- No shared mutable state between modules
-- All effects go through host capabilities
-
-Determinism is a host-provided mode; the language does not define a scheduling model.
-
----
-
-## 13. Relationship to Other Specs
-
-This document defines language semantics. The AST, ABI, and manifest are specified in `AST-SPEC.md`, `ABI-SPEC.md`, and `MANIFEST-SPEC.md` respectively.
-
----
-
-## 14. Guiding Rule
-
-If behavior is not specified here, it is undefined. Implementations must not invent semantics beyond the canonical specs.
-
-
-Glyph supports **async functions** and `await`.
+If behavior is not specified here, implementations must not invent it.

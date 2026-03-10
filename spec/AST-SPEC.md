@@ -84,7 +84,7 @@ Expression nodes include:
 - `IndexExpression`
 - `MemberAccess`
 
-There are no `AwaitExpression` or async-specific nodes in the core AST.
+The core AST stays limited to the minimal language surface described in `LANGUAGE-SPEC.md`.
 
 ---
 

@@ -1,61 +1,25 @@
-# Glyph — Roadmap (Simplified)
+# Glyph - Roadmap
 
-This roadmap focuses on a compact, achievable path to a WASM-first, embeddable scripting language.
+This roadmap keeps Glyph on a small, achievable path.
 
-## Guiding Principles
+## Phase 0 - Core Shape
 
-- Spec-first: define a small, stable spec before expanding features
-- Dev experience: iterate on fast build/reload workflows using WASM module replacement
-- Security-first: capability-based manifests and host-enforced quotas
+- finalize the compact language and spec set
+- establish the Rust compiler path to WASM
+- keep examples aligned with host embedding
 
-## Phase 0 — Foundation
+## Phase 1 - Practical Embedding
 
-Goal: establish core specs and a minimal compiler.
+- improve compile speed and module replacement workflow
+- add focused examples for game engines, plugins, and browser scripting
+- provide minimal editor support
 
-Deliverables:
+## Phase 2 - Stabilization
 
-- Canonical specs: `LANGUAGE-SPEC.md`, `AST-SPEC.md`, `MANIFEST-SPEC.md`, `ABI-SPEC.md`
-- `sparq/`: Rust compiler that emits WASM
-- Basic examples showing embedding in a Rust host and in the browser
+- lock down manifest and ABI behavior
+- expand tests for compiler correctness and host integration
+- document security and resource-limit guidance clearly
 
-Exit criteria: clear, versioned specs and reproducible WASM artifacts.
+## Constraint
 
-## Phase 1 — Minimal Tooling & Examples
-
-Goal: make Glyph practical to embed and iterate with.
-
-Deliverables:
-
-- Fast compile & simple hot-reload workflow (WASM module replacement)
-- Small example hosts (Rust host, browser wrapper)
-- Minimal editor support (lightweight LSP with syntax/manifest checks)
-- Test suite for core language features
-
-Exit criteria: developers can compile, load, and iterate on modules easily.
-
-## Phase 2 — Security & Stabilization
-
-Goal: harden runtime interactions and stabilize the v1 spec.
-
-Deliverables:
-
-- Capability enforcement guidance for hosts
-- Resource quota recommendations and tests
-- Golden tests for language semantics
-- Documentation and migration notes
-
-Exit criteria: clear v1 promise and stable core behavior.
-
-## Non-Goals (explicit)
-
-Glyph will not, in core, pursue:
-
-- Interpreter-first dual-runtime architectures
-- JITs, macros, generics, or complex type systems
-- Large package registries or centralized ecosystem control
-
-These would contradict the small embeddable scope.
-
----
-
-Further details live in `VISION.md` and the `spec/` directory.
+The roadmap should keep Glyph within the size and complexity of a small embeddable language project.

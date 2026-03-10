@@ -1,21 +1,16 @@
-# **Getting Started with Glyph**
+# Getting Started with Glyph
 
-This guide walks you through **running your first Glyph program** using **Wisp (dev mode)** and explains how it fits into the broader Glyph toolchain.
+Glyph is a small WASM-first scripting language. The intended workflow is simple:
 
----
+```text
+write glyph source
+→ compile to wasm
+→ load in a capability-secure host
+```
 
-## 1. What You Need
+## 1. Prerequisites
 
-Glyph is early-stage. For now, you need:
-
-* **Git**
-* **Dart SDK** (for Wisp dev mode)
-* **Go** (for tooling and LSP, optional at first)
-* **Rust** (later, for Sparq)
-
-You do **not** need Rust to get started.
-
----
+For the current project direction, the important dependency is Rust for the compiler work in `sparq/`. Additional host tooling depends on the integration example you are using.
 
 ## 2. Clone the Repository
 
@@ -24,15 +19,9 @@ git clone https://github.com/divijg19/glyph
 cd glyph
 ```
 
----
+## 3. Write a Small Module
 
-## 3. Your First Glyph Program
-
-Create a file:
-
-```text
-hello.gl
-```
+Create `hello.gl`:
 
 ```glyph
 import io
@@ -42,136 +31,37 @@ export fn main() {
 }
 ```
 
-This defines a simple module with one exported function.
+## 4. Compile to WASM
 
----
-
-## 4. Run in Dev Mode (Wisp)
-
-Navigate to the Wisp directory:
-
-```bash
-cd wisp
-```
-
-Run the Wisp REPL:
-
-```bash
-dart run bin/wisp.dart repl
-```
-
-Or execute a file:
-
-```bash
-dart run bin/wisp.dart run ../hello.gl
-```
-
-You should see:
+Glyph source is intended to compile through the Rust compiler into a WASM module. Exact command names may evolve while implementation catches up, but the architectural flow is fixed:
 
 ```text
-Hello, Glyph
+hello.gl
+→ compiler
+→ hello.wasm
 ```
 
-This execution:
+## 5. Load in a Host
 
-* Parses source
-* Emits canonical AST
-* Interprets the AST directly
-* Routes `io.log` through the host
+The host runtime loads the compiled module, grants capabilities, and invokes exports such as `main`.
 
----
+## 6. Hot Reload
 
-## 5. Hot Reload (Dev Mode)
+During development, change the source, rebuild the module, and replace the WASM module in the host.
 
-Wisp supports hot reload.
-
-When running in dev mode:
-
-* Edit the `.gl` file
-* Save changes
-* Wisp reloads the AST and updates execution state
-
-This is especially powerful when used inside **Flutter** via `ScriptWidget`.
-
----
-
-## 6. Using Glyph with Flutter (Preview)
-
-Wisp integrates directly with Flutter.
-
-In a Flutter app:
-
-```dart
-ScriptWidget(
-  source: 'ui.gl',
-  onEvent: (event) => print(event),
-)
-```
-
-This allows Glyph scripts to:
-
-* drive UI logic
-* respond to events
-* hot reload live
-
-Full examples live in:
-
-```
-wisp/examples/flutter/
-```
-
----
-
-## 7. Production Builds (Coming Soon)
-
-In production, Glyph programs are:
+## 7. Project Layout
 
 ```text
-Glyph source → AST → WASM → .rwm
+spec/        → authoritative language and ABI docs
+sparq/       → Rust compiler and packaging
+lsp/         → minimal editor tooling guidance
+docs/        → onboarding and architecture
+examples/    → host integration examples
 ```
 
-This is handled by **Sparq** and the **Glyph toolchain**.
+## 8. Next Reading
 
-Example (future):
-
-```bash
-glyph build hello.gl
-glyph run hello.rwm
-```
-
----
-
-## 8. Project Layout Recap
-
-```text
-spec/        → language contracts (authoritative)
-wisp/        → Dart dev interpreter
-sparq/       → Rust runtime + compiler
-toolchain/   → Go CLI & rig integration
-lsp/         → Go language server
-docs/        → guides & tutorials
-examples/    → real-world usage
-```
-
----
-
-## 9. Where to Go Next
-
-* Learn the language: `spec/LANGUAGE-SPEC.md`
-* Understand the architecture: `ARCHITECTURE.md`
-* Explore dev mode: `wisp/DEVMODE.md`
-* See examples: `examples/`
-
----
-
-## 10. Early-Stage Notice
-
-Glyph is evolving.
-
-Expect:
-
-* breaking changes
-* missing features
-* sharp edges
-
-This is the right time to contribute ideas.
+- `spec/LANGUAGE-SPEC.md`
+- `ARCHITECTURE.md`
+- `VISION.md`
+- `examples/README.md`

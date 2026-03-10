@@ -13,7 +13,7 @@ Sparq responsibilities:
 - Validate manifest and ABI compatibility
 - Package WASM with manifest metadata (optional `.rwm` wrapper)
 
-Sparq is implemented in Rust and intentionally does not host a full runtime VM — execution is delegated to the host.
+Sparq is implemented in Rust and intentionally does not host its own execution environment. Execution is delegated to the host.
 
 ---
 
@@ -54,7 +54,7 @@ Hosts load and execute WASM modules produced by Sparq. Hosts are responsible for
 - Binding capability namespaces
 - Enforcing resource quotas
 - Managing module lifecycle and hot-reload
-- Providing any scheduling or async behavior
+- Providing any host-specific execution behavior
 
 Sparq's role ends at producing validated, portable modules.
 
@@ -70,8 +70,8 @@ Sparq should support golden compiler tests (AST → WASM → outputs) and provid
 
 Sparq does not:
 
-- Implement a production VM, scheduler, or garbage collector
+- Implement its own execution environment, scheduler, or garbage collector
 - Provide opinionated host runtime features
-- Manage package registries or complex distribution protocols (these are out-of-scope for the core compiler)
+- Grow into a large distribution platform outside the core compiler scope
 
 The project prefers small, composable tools over a large, integrated runtime.
