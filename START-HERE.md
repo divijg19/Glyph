@@ -21,7 +21,7 @@ cd glyph
 
 ## 3. Write a Small Module
 
-Create `hello.gl`:
+Create `hello.gly`:
 
 ```glyph
 import io
@@ -36,7 +36,7 @@ export fn main() {
 Glyph source is intended to compile through the Rust compiler into a WASM module. Exact command names may evolve while implementation catches up, but the architectural flow is fixed:
 
 ```text
-hello.gl
+hello.gly
 → compiler
 → hello.wasm
 ```
@@ -52,8 +52,8 @@ During development, change the source, rebuild the module, and replace the WASM 
 ## 7. Project Layout
 
 ```text
-spec/        → authoritative language and ABI docs
-sparq/       → Rust compiler and packaging
+glyph/spec/        → authoritative language and ABI docs
+glyph/sparq/       → Rust compiler and packaging
 lsp/         → minimal editor tooling guidance
 docs/        → onboarding and architecture
 examples/    → host integration examples
