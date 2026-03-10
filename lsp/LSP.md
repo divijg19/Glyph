@@ -11,7 +11,7 @@ Core responsibilities:
 
 Design constraints:
 
-- The LSP must not attempt to execute Glyph code or become runtime-aware beyond static spec checks.
+- The LSP must not attempt to execute Glyph code or model host execution beyond static spec checks.
 - Keep implementations language-agnostic; choice of implementation language is up to contributors.
 - Prioritize responsiveness and incremental analysis for edit-time feedback.
 

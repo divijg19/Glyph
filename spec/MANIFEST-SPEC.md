@@ -56,7 +56,7 @@ Rules:
 
 ## 6. Exports
 
-`exports` lists exported function names that hosts may invoke. Export metadata is declarative; the manifest does not express execution concurrency (async) — hosts manage invocation semantics.
+`exports` lists exported function names that hosts may invoke. Export metadata is declarative; hosts manage invocation semantics.
 
 Example:
 
