@@ -1,282 +1,125 @@
-# **Glyph — Canonical AST Specification**
+# Glyph — Canonical AST Specification (Minimal)
 
-> **Status:** Draft (authoritative; all runtimes and tools must conform)
+> Status: Draft — the AST is intentionally compact and authoritative for compiler and tooling behavior.
 
-This document defines the **canonical Abstract Syntax Tree (AST)** for the Glyph language.
-
-The AST is the **single source of truth** for Glyph semantics.
-All implementations — **Wisp**, **Sparq**, **rig**, **glyph-lsp**, tooling, and tests — must consume or emit this AST without semantic deviation.
+This document describes a minimal canonical AST for Glyph. The AST is the authoritative representation of source semantics used by the compiler and tooling.
 
 ---
 
 ## 1. Purpose of the Canonical AST
 
-The canonical AST exists to:
-
-* Decouple **language semantics** from implementation details
-* Allow multiple runtimes (Dart, Rust) to coexist safely
-* Enable deterministic compilation and execution
-* Provide a stable contract for tooling (LSP, formatters, linters)
-* Prevent semantic drift across implementations
-
-**No runtime may define its own semantics outside the AST.**
+The AST decouples language semantics from implementation details and provides a stable contract for the compiler and tools. Implementations (compiler, packager, and tooling) must consume or emit this AST without inventing semantics.
 
 ---
 
-## 2. Representation Format
+## 2. Representation and Goals
 
-* The canonical AST is defined in **Protocol Buffers** (`ast.proto`).
-* JSON serialization is permitted **only** for debugging and tooling.
-* Binary Protobuf is the authoritative interchange format.
+The canonical AST should be compact, explicit, and versioned. Implementations may choose a convenient serialization (JSON, protobuf, etc.) for interchange and storage; compatibility is maintained via a `spec_version` field.
 
-Location:
+Design principles:
 
-```
-glyph/spec/ast.proto
-```
-
----
-
-## 3. AST Design Principles
-
-1. **Explicit over implicit**
-   All semantics must be encoded directly in nodes.
-
-2. **Minimal node set**
-   Prefer fewer node types with clear meaning.
-
-3. **No syntactic sugar**
-   Sugar must be desugared during parsing, not execution.
-
-4. **Host-agnostic**
-   AST contains no Dart, Rust, Go, or WASM concepts.
-
-5. **Forward-compatible**
-   Nodes are versioned; unknown fields must be ignored safely.
+- Explicit over implicit
+- Minimal node set
+- Host-agnostic nodes (no runtime-specific concepts)
+- Forward-compatible field versioning
 
 ---
 
-## 4. Top-Level Structure
+## 3. Top-Level Structure
 
-A Glyph module AST consists of:
+A module AST contains:
 
-```text
-Module
- ├── Header
- ├── Imports
- ├── Declarations
- ├── Exports
- └── Body
-```
+- Header
+- Imports
+- Declarations
+- Exports
+- Body
 
-There is exactly **one Module node** per source file.
+One module node per source file.
 
 ---
 
-## 5. Core Node Types (Conceptual)
+## 4. Core Node Types
 
-### 5.1 Module
+Module: `spec_version`, `imports[]`, `declarations[]`, `exports[]`, `body[]`, `source_map`.
 
-Represents a single compilation unit.
+Import: `name`, `alias?`, `capability?` (logical host capability reference).
 
-Fields:
+Declaration variants: `FunctionDeclaration`, `VariableDeclaration`.
 
-* `spec_version`
-* `imports[]`
-* `declarations[]`
-* `exports[]`
-* `body[]`
-* `source_map`
+FunctionDeclaration: `name`, `parameters[]`, `body[]`, `source_span`.
+
+VariableDeclaration: `name`, `initializer` (Expression), `is_mutable` (default false).
 
 ---
 
-### 5.2 Import
+## 5. Statements
 
-Logical import tied to a capability.
+Supported statement nodes:
 
-Fields:
+- `Block`
+- `If`
+- `For` (iteration)
+- `Return`
+- `Break`
+- `Continue`
+- `ExpressionStatement`
 
-* `name` (string)
-* `alias` (optional)
-* `capability_ref`
-
-Example:
-
-```glyph
-import io
-```
+Each statement carries a `source_span` for tooling and diagnostics.
 
 ---
 
-### 5.3 Declaration
+## 6. Expressions
 
-Top-level bindings.
+Expression nodes include:
 
-Variants:
+- `Literal` (number, string, boolean, nil)
+- `Identifier`
+- `BinaryExpression`
+- `UnaryExpression`
+- `CallExpression`
+- `FunctionExpression`
+- `ArrayLiteral`
+- `MapLiteral`
+- `IndexExpression`
+- `MemberAccess`
 
-* FunctionDeclaration
-* VariableDeclaration
-
----
-
-### 5.4 FunctionDeclaration
-
-Fields:
-
-* `name`
-* `parameters[]`
-* `body[]`
-* `is_async`
-* `source_span`
+There are no `AwaitExpression` or async-specific nodes in the core AST.
 
 ---
 
-### 5.5 VariableDeclaration
+## 7. Literals
 
-Fields:
-
-* `name`
-* `initializer` (Expression)
-* `is_mutable` (default false)
+Literal node kinds: `NumberLiteral`, `StringLiteral`, `BooleanLiteral`, `NilLiteral`, `ArrayLiteral`, `MapLiteral`.
 
 ---
 
-## 6. Statements
+## 8. Control Flow Semantics
 
-Statement node variants:
+Control flow is structural. Example: `IfStatement(condition, then_block, else_block?)`.
 
-* Block
-* If
-* While
-* For
-* Return
-* ExpressionStatement
-
-All statements include:
-
-* `source_span`
+Loops are explicit (`For`), and `break`/`continue` are represented as statements.
 
 ---
 
-## 7. Expressions
+## 9. Source Mapping
 
-Expression node variants:
-
-* Literal
-* Identifier
-* BinaryExpression
-* UnaryExpression
-* CallExpression
-* FunctionExpression
-* AwaitExpression
-* ArrayLiteral
-* MapLiteral
-* IndexExpression
-* MemberAccess
-
-Expressions are **pure** unless they call host functions.
+Each AST node includes a `source_span { file, start, end }` to support accurate diagnostics and editor tooling.
 
 ---
 
-## 8. Literals
+## 10. Versioning & Compatibility
 
-Literal node variants:
-
-* NumberLiteral
-* StringLiteral
-* BooleanLiteral
-* NullLiteral
-
-Values are immutable.
+AST includes `spec_version`. New optional fields are allowed; removing or changing fields is a breaking change and must be versioned accordingly.
 
 ---
 
-## 9. Control Flow Semantics
+## 11. Forbidden in the AST
 
-* Control flow is explicit in the AST.
-* There is no implicit fallthrough.
-* Loops and conditionals are represented structurally, not via jumps.
-
-Example:
-
-```glyph
-if x > 0 { ... }
-```
-
-→ `IfStatement(condition, then_block, else_block?)`
+The AST must not encode runtime internals, host-specific types, or implicit environment state.
 
 ---
 
-## 10. Async Semantics in the AST
+## 12. Invariant
 
-Async behavior is explicit.
-
-* Async functions have `is_async = true`
-* Await is represented by `AwaitExpression`
-* No implicit async propagation
-
----
-
-## 11. Error & Panic Nodes
-
-Errors are explicit AST nodes.
-
-Variants:
-
-* ErrorExpression
-* PanicStatement (optional, future)
-
-Uncaught errors propagate to the host.
-
----
-
-## 12. Source Mapping
-
-Every AST node contains:
-
-* `source_span { file, start, end }`
-
-This enables:
-
-* Accurate error messages
-* LSP diagnostics
-* Source-level debugging
-* Stack traces across runtimes
-
----
-
-## 13. Versioning & Compatibility
-
-* AST includes `spec_version`
-* New fields must be optional
-* Removing fields is a breaking change
-* Runtimes must declare supported AST versions
-
----
-
-## 14. Forbidden in the AST
-
-The AST must **never** include:
-
-* Host-specific handles
-* Raw pointers
-* Runtime state
-* Implicit globals
-* Environment variables
-* Filesystem paths
-
----
-
-## 15. Testing Requirements
-
-* Golden AST tests must exist for all syntax features
-* AST round-trip (parse → serialize → parse) must be lossless
-* All runtimes must pass the same AST test corpus
-
----
-
-## 16. Invariant
-
-> **If two runtimes consume the same AST, they must produce the same observable behavior.**
-
-This is the core correctness rule.
+If the compiler and tools operate on the same AST, observable behavior and diagnostics should be consistent across the toolchain.

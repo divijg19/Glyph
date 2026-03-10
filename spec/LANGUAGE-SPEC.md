@@ -58,11 +58,46 @@ A module consists of:
 Example:
 
 ```glyph
+# Glyph — Language Specification (Minimal)
+
+> Status: Draft — the language spec is intentionally small and authoritative for compiler and tooling behavior.
+
+This document captures the minimal language surface for Glyph: a compact scripting DSL that compiles to WASM and is intended for embedding in capability-secure hosts.
+
+---
+
+## 1. Scope
+
+Glyph is a tiny, embeddable scripting language aimed at:
+
+- UI scripting and browser-side behavior (via WASM)
+- Plugin logic for Rust hosts and game engines
+- Simple automation and configuration tasks
+
+Glyph is not a full systems language or a VM — it targets small, auditable modules.
+
+---
+
+## 2. Design Goals
+
+- Keep the syntax and semantics minimal and easy to implement
+- Ensure portability by targeting WASM
+- Enforce capability-based side effects via host manifests
+- Avoid complex type systems, macros, or advanced language features
+
+---
+
+## 3. Program Model
+
+A Glyph program is a module. Modules contain imports, declarations, and exports. Hosts decide which exported functions to invoke.
+
+Example:
+
+```glyph
 import io
-import math
 
 export fn main() {
-  let x = math.sqrt(16)
+  let x = 42
   io.log(x)
 }
 ```
@@ -71,250 +106,120 @@ export fn main() {
 
 ## 4. Lexical Elements
 
-### 4.1 Identifiers
+Identifiers: start with a letter or `_`, may contain letters, digits, and `_`, and are case-sensitive.
 
-* Start with a letter or `_`
-* May contain letters, digits, `_`
-* Case-sensitive
-
-Examples:
-
-```
-foo
-_bar
-computeValue
-```
+Literals: numbers (64-bit float), strings (UTF-8), booleans, `nil`, arrays, and maps.
 
 ---
 
-### 4.2 Keywords
+## 5. Keywords
 
-Reserved keywords (initial set):
+Glyph keeps keywords to a minimum. An initial set:
 
 ```
-let   fn   export   import
-if    else for      while
-return await async
-true  false null
+fn  let  export  import
+if  else for  return
+break  continue
+true  false  nil
 ```
 
-Keywords may expand over time but are versioned.
+This set is intentionally small (≈10–12 keywords).
 
 ---
 
-### 4.3 Literals
+## 6. Values & Types
 
-Supported literals:
+Glyph is dynamically typed. Core runtime values:
 
-* Numbers (64-bit floating point)
-* Strings (UTF-8)
-* Booleans
-* Null
-* Arrays
-* Maps
+- number, string, boolean, nil
+- list (array), map (string-keyed)
+- function
 
-Examples:
-
-```glyph
-42
-3.14
-"hello"
-true
-[1, 2, 3]
-{ "a": 1, "b": 2 }
-```
+Type errors are runtime errors.
 
 ---
 
-## 5. Types & Values
+## 7. Variables
 
-Glyph is **dynamically typed**, with optional static hints later.
-
-Core value types:
-
-* Number
-* String
-* Boolean
-* Null
-* Array
-* Map
-* Function
-* HostHandle (opaque, host-defined)
-
-Type errors occur at runtime.
-
----
-
-## 6. Variables & Binding
-
-Variables are declared using `let`.
-
-* Block-scoped
-* Immutable by default (future: `mut` if needed)
-
-Example:
+Variables are declared with `let` and are block-scoped. They are immutable by default.
 
 ```glyph
 let x = 10
-let y = x + 5
 ```
 
-Shadowing is allowed.
+Shadowing is permitted.
 
 ---
 
-## 7. Functions
+## 8. Functions
 
-Functions are first-class values.
-
-Declaration:
+Functions are first-class and declared with `fn`.
 
 ```glyph
-fn add(a, b) {
-  return a + b
-}
+fn add(a, b) { return a + b }
+let sq = fn(x) { x * x }
 ```
 
-Exported function:
-
-```glyph
-export fn main() {
-  // entry point
-}
-```
-
-Anonymous function:
-
-```glyph
-let f = fn(x) { x * x }
-```
+Exported functions are declared with `export fn`.
 
 ---
 
-## 8. Control Flow
+## 9. Control Flow
 
-### 8.1 Conditionals
+Glyph supports only a small set of control constructs:
+
+- `if` / `else`
+- `for` (iteration over arrays or ranges)
+- `return`
+- `break` / `continue` inside loops
+
+Examples:
 
 ```glyph
-if x > 0 {
-  io.log("positive")
-} else {
-  io.log("non-positive")
-}
+if x > 0 { ... } else { ... }
+for item in items { ... }
 ```
+
+There is no `while` loop, no `async/await`, and no built-in concurrency model in the core language. Hosts provide any needed scheduling or async behavior.
 
 ---
 
-### 8.2 Loops
+## 10. Imports & Host Capabilities
 
-```glyph
-for i in [1,2,3] {
-  io.log(i)
-}
-
-while x < 10 {
-  x = x + 1
-}
-```
-
----
-
-## 9. Async & Await
-
-Glyph supports **async functions** and `await`.
-
-```glyph
-export async fn fetchData() {
-  let data = await net.get("https://example.com")
-  return data
-}
-```
-
-Concurrency is cooperative and host-mediated.
-
----
-
-## 10. Imports & Capabilities
-
-Imports are **logical**, not filesystem-based.
+Imports refer to host-provided capability namespaces. The module manifest declares capabilities; hosts grant them at load time. Source code cannot grant itself capabilities.
 
 ```glyph
 import io
-import net
+io.log("hi")
 ```
 
-Each import must correspond to:
+---
 
-* a declared capability in the module manifest
-* a host-provided namespace
+## 11. Errors
 
-Source code cannot grant itself capabilities.
+Errors are values that propagate to the host when unhandled. Hosts decide how to map or present errors.
 
 ---
 
-## 11. Exports & Entry Points
+## 12. Execution Semantics
 
-Exports define the module’s public API.
+- Single-threaded execution per module instance (from the language perspective)
+- No shared mutable state between modules
+- All effects go through host capabilities
 
-```glyph
-export fn init() {}
-export fn handle(event) {}
-```
-
-There is no implicit `main`; hosts decide which exported functions to invoke.
+Determinism is a host-provided mode; the language does not define a scheduling model.
 
 ---
 
-## 12. Error Handling
+## 13. Relationship to Other Specs
 
-Errors are values.
-
-* Unhandled errors propagate to host
-* Hosts may map errors to exceptions or error objects
-
-Example:
-
-```glyph
-fn risky() {
-  error("something went wrong")
-}
-```
-
-(Final error model defined in ABI spec.)
+This document defines language semantics. The AST, ABI, and manifest are specified in `AST-SPEC.md`, `ABI-SPEC.md`, and `MANIFEST-SPEC.md` respectively.
 
 ---
 
-## 13. Execution Semantics
+## 14. Guiding Rule
 
-* Single-threaded execution per module instance
-* No shared mutable state between modules
-* All side effects go through host capabilities
-* Deterministic execution unless host provides nondeterminism
+If behavior is not specified here, it is undefined. Implementations must not invent semantics beyond the canonical specs.
 
----
 
-## 14. What This Spec Does *Not* Define
-
-This document does **not** define:
-
-* AST structure (see `AST-SPEC.md`)
-* ABI and memory layout (see `ABI-SPEC.md`)
-* Module packaging (see `MANIFEST-SPEC.md`)
-* Runtime enforcement details (see `RUNTIME.md`)
-
----
-
-## 15. Versioning & Compatibility
-
-* This spec is versioned
-* Backward-incompatible changes increment major version
-* Runtimes must declare supported spec versions
-
----
-
-## 16. Guiding Rule
-
-> **If behavior is not specified here, it is undefined.**
-
-Implementations must not invent semantics.
-
+Glyph supports **async functions** and `await`.
