@@ -1,14 +1,10 @@
-# **Glyph — Vision**
+# Glyph - Vision
 
-`Glyph` exists to fill a missing layer in modern software stacks:
-a **small, safe, embeddable scripting and module language** that works seamlessly across **UI, backend, tooling, and the web**.
-
-It is not a replacement for Go, Dart, or Flutter.
-It is the *glue* that makes them more expressive, dynamic, and extensible.
+Glyph is a small, WASM-first, embeddable scripting language designed to be tiny, portable, and capability-safe. It targets lightweight scripting and plugin scenarios such as Rust game engines, plugin systems, automation, and browser UI scripting. Glyph intentionally keeps scope minimal so it can be embedded in hosts with clear capability boundaries.
 
 ---
 
-## 🌍 The Problem `Glyph` Solves
+## The Problem `Glyph` Solves
 
 Modern stacks suffer from fragmentation:
 
@@ -31,143 +27,69 @@ Existing options fail because they are either:
 
 ---
 
-## 🎯 `Glyph`’s Purpose
+## Purpose
 
-`Glyph` is designed to be:
+`Glyph` is intended as:
 
-* A **scripting language** for apps, UIs, and games
-* A **plugin language** for servers, tools, and frameworks
-* A **WASM module language** for portable, sandboxed execution
-* A **configuration + automation language** that replaces brittle YAML
-* A **developer-extension layer** for Flutter, Go, and rig
+- A tiny scripting language for UI logic, automation, and game rules
+- A plugin language for Rust hosts and other capability-secure runtimes
+- A WASM compilation target for portable, sandboxed modules
 
-`Glyph` is what you embed when:
-
-* you want runtime extensibility without compromising safety
-* you want one script to run in Flutter, Go, and the browser
-* you want to ship plugins you don’t fully trust
-* you want hot reload without recompiling the world
+Glyph is not a general-purpose systems language, VM, or frontend framework.
 
 ---
 
-## 🧠 Design Philosophy
+## Design Philosophy
 
-### 1. **Complement, Don’t Compete**
-
-* Go remains the language for systems, servers, concurrency.
-* Dart remains the language for UI and app logic.
-
-### 2. **Small Things, Composed Well**
-
-* Minimal syntax
-* Minimal runtime
-* Orthogonal features
-* No “language magic”
-
-### 3. **WASM Is the Contract**
-
-* WASM is the canonical production target.
-* Native execution is an optimization, not a requirement.
-* Portability beats cleverness.
-
-### 4. **Security Is a Language Feature**
-
-* No implicit access to IO, network, or time.
-* Capabilities must be declared and granted.
-* Sandboxing is non-negotiable.
-
-### 5. **Great DX Is Mandatory**
-
-* Hot reload
-* REPL
-* Clear errors
-* Strong tooling
-* Predictable behavior
+- Complement, don’t compete: host languages (Go, Rust, etc.) remain the place for systems and heavy lifting.
+- Minimal surface: few keywords, a compact AST, and a deliberately small standard library.
+- WASM as the production contract: compile to WASM, run in host-provided environments.
+- Security by design: capabilities and manifests govern side effects.
 
 ---
 
-## 🧩 The `Glyph` Triad
+## Development Model
 
-Glyph is intentionally split into three cooperating systems:
+Edit a Glyph source file → compile to WASM using the Rust compiler → hot-reload the module in the host via WASM module replacement.
 
-### **`Glyph` (the language)**
-
-* Syntax, semantics, standard library
-* Canonical AST and module definitions
-
-### **Wisp (dev mode)**
-
-* Dart-based interpreter
-* Hot reload and Flutter integration
-* Fast iteration and prototyping
-
-### **Sparq (production mode)**
-
-* Rust-based compiler and runtime
-* AOT → WASM
-* Deterministic, sandboxed execution
-
-This split allows:
-
-* maximum productivity during development
-* maximum safety and performance in production
+Hot reload is achieved by swapping WASM modules in the host; Glyph does not rely on a separate interpreter for dev-mode execution.
 
 ---
 
-## 🧱 Target Ecosystem
+## Language Surface (intent)
 
-`Glyph` is designed first-class for the **Golden Stack**:
+Keep the language extremely small. Target values and structures include:
 
-* **Go** — servers, tooling, infrastructure
-* **Dart / Flutter** — UI, apps, client logic
-* **Templ / HTMX** — server-rendered UI
-* **Jaspr** — Dart-first web
-* **rig** — build, package, orchestrate
+- numbers, strings, booleans
+- lists (arrays) and maps (string-keyed)
+- functions and modules
+- control flow: `if`, `for`, `return`, `break`, `continue`
 
-But `Glyph` is **not limited** to this ecosystem.
-
-Its true scope includes:
-
-* game engines
-* plugin systems
-* edge computing
-* WASM-based web apps
-* embedded scripting in any host language
+Keyword set should remain minimal (approx. 10–12 keywords).
 
 ---
 
-## 🧭 Long-Term Direction
+## Target Architecture
 
-`Glyph` aims to become:
+Glyph source → Rust compiler → WASM module → Host runtime (provides capabilities such as DOM, timers, storage, engine hooks).
 
-* The **modern successor to Lua**
-* The **default scripting language for WASM-first systems**
-* A **safe alternative to ad-hoc JavaScript embedding**
-* A **unified plugin language across frontend and backend**
-* A **quiet but essential layer** in serious software systems
-
-`Glyph` is not flashy.
-It is dependable, composable, and precise.
+Glyph itself does not implement a VM, scheduler, GC, or a custom runtime — WASM is the execution runtime.
 
 ---
 
-## 🚫 Non-Goals
+## Non-Goals
 
-`Glyph` intentionally avoids:
+Glyph intentionally avoids:
 
-* Being a general-purpose systems language
-* Replacing Go, Rust, or Dart
-* Large standard libraries
-* Implicit global state
-* Hidden runtime behavior
-* Platform-specific hacks
+- Interpreter-first or dual-runtime architectures
+- JITs, custom VMs, or language-specific schedulers
+- Complex type systems, macros, or generics
+- Large package registries or sweeping ecosystem ambitions
 
-If something belongs in the host language, it stays there.
+These directions would contradict Glyph’s goals of smallness and embeddability.
 
 ---
 
-## 🏁 Guiding Principle
+## Guiding Principle
 
-> **`Glyph` should make the system more powerful without making it more fragile.**
-
-That is the standard every feature must meet.
+Glyph must remain small, portable, and embeddable: useful without being burdensome to host or maintain.

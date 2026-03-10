@@ -19,353 +19,126 @@ The architecture is intentionally:
 
 * **Layered**
 * **Spec-driven**
-* **WASM-first**
-* **Security-centric**
-* **Tooling-aware**
+# Glyph — System Architecture (Simplified)
 
-Every architectural decision serves one of these goals.
+This document defines the minimal, production-focused architecture for Glyph: a small, WASM-first scripting language intended to be embedded in capability-secure hosts. The architecture emphasizes a single compilation pipeline, small specifications, and clear host responsibilities.
 
 ---
 
-## 2. Architectural Overview
+## 1. Architectural Intent
 
-At a high level, Glyph consists of **five orthogonal layers**:
+Glyph exists to provide a compact, safe scripting layer for embedding in hosts (game engines, servers, browsers). The architecture is intentionally minimal, spec-driven, and WASM-first.
+
+Key properties:
+
+- Layered and spec-driven
+- WASM as the production contract
+- Capability-based security
+- Small, auditable language surface
+
+---
+
+## 2. Canonical Pipeline
+
+Glyph follows a simple, single pipeline:
 
 ```
-┌──────────────────────────────┐
-│        User & Editors        │
-│     (VS Code, Neovim, CI)    │
-└──────────────┬───────────────┘
-               │
-┌──────────────▼───────────────┐
-│        Tooling Layer         │
-│   (glyph CLI, rig, LSP)      │
-└──────────────┬───────────────┘
-               │
-┌──────────────▼───────────────┐
-│     Runtime Implementations  │
-│   Wisp (Dart) | Sparq (Rust) │
-└──────────────┬───────────────┘
-               │
-┌──────────────▼───────────────┐
-│        Canonical Specs       │
-│  Language | AST | ABI | Man.│
-└──────────────┬───────────────┘
-               │
-┌──────────────▼───────────────┐
-│          Host Systems        │
-│  Go | Flutter | Web | Games  │
-└──────────────────────────────┘
+Glyph source
+   ↓
+Rust compiler (sparq/)  →  AST → WASM
+   ↓
+WASM module (.wasm / .rwm)
+   ↓
+Host runtime (provided by integrator)
 ```
 
-**Key idea:**
-Everything above the specs *consumes them*.
-Nothing below them depends on implementation details.
+The host runtime is responsible for providing capability APIs (DOM, timers, storage, engine hooks), enforcing resource limits, and managing module lifecycle. Glyph itself does not implement a VM, scheduler, GC, or JIT.
 
 ---
 
-## 3. The Canonical Core: Specifications
+## 3. Specifications (The Source of Truth)
 
-The **spec layer** is the heart of Glyph.
+The spec layer defines language semantics, the canonical AST, the module manifest, and the host ABI. It is authoritative: implementations and tools must conform to the specs found under `spec/`.
 
-Located in:
-
-```
-glyph/spec/
-```
-
-It defines:
-
-* Language semantics
-* Canonical AST
-* Module manifest
-* Host ABI
-
-### Architectural Rule #1 (Non-negotiable)
-
-> **The specs define truth. Implementations conform.**
-
-No runtime, tool, or editor may invent behavior not described in the specs.
+Non-negotiable rule: specs define semantics; implementations implement them.
 
 ---
 
-## 4. Runtime Architecture
+## 4. Compiler vs Host Responsibilities
 
-Glyph deliberately has **two runtimes**, each optimized for a different axis.
+Compiler (sparq/):
 
-### 4.1 Wisp — Development Runtime (Dart)
+- Parses source and emits a canonical AST
+- Compiles AST to WASM artifacts
+- Validates manifests and basic ABI conformance
+- Produces reproducible, portable module artifacts
 
-**Location:** `glyph/wisp/`
+Host runtime (integrator responsibility):
 
-Purpose:
+- Loads and instantiates WASM modules
+- Provides capability APIs and enforces permissions
+- Applies resource quotas and scheduling policies
+- Performs hot-reload by module replacement
 
-* Fast iteration
-* Hot reload
-* Flutter integration
-* REPL and debugging
-
-Characteristics:
-
-* AST interpreter
-* No WASM
-* Best-effort sandboxing
-* Mirrors production semantics where possible
-
-Wisp optimizes for **developer experience**.
+Glyph intentionally pushes execution semantics to the host; it does not ship an opinionated runtime VM.
 
 ---
 
-### 4.2 Sparq — Production Runtime (Rust)
+## 5. Tooling & Editor Support (Minimal)
 
-**Location:** `glyph/sparq/`
-
-Purpose:
-
-* Secure execution
-* Determinism
-* Performance
-* Portability
-
-Characteristics:
-
-* AST → WASM compiler
-* WASM-first execution
-* Strict sandboxing
-* Capability enforcement
-* Resource quotas
-
-Sparq optimizes for **correctness and safety**.
+Tooling should be lightweight and spec-driven. Editor/IDE support (LSP) is optional and should provide minimal features: syntax validation, basic diagnostics, symbol navigation, and manifest validation. LSP must not become a runtime or execution engine.
 
 ---
 
-### Architectural Rule #2
+## 6. Module Model & Security
 
-> **Wisp may be forgiving. Sparq never is.**
+Modules are capability-scoped and isolated. A manifest declares required capabilities and resource limits; hosts grant capabilities at instantiation time. No module gains ambient authority by default.
 
-If behavior differs, Sparq is authoritative.
-
----
-
-## 5. Tooling & Orchestration
-
-### 5.1 Glyph Toolchain (Go)
-
-**Location:** `glyph/toolchain/`
-
-Responsibilities:
-
-* Build pipelines (source → AST → `.rwm`)
-* Validation (specs, manifests, ABI)
-* Packaging and signing
-* Execution orchestration
-* Registry interaction
-
-The toolchain:
-
-* never defines semantics
-* never executes code directly
-* never bypasses the runtime
-
-It is a **control plane**, not an execution engine.
+Invariant: A module can only do what its manifest and host allow.
 
 ---
 
-### 5.2 Language Server (Go)
+## 7. Artifact Flow (Source → Production)
 
-**Location:** `glyph/lsp/`
+1. Author Glyph source
+2. Compile with `sparq` → WASM
+3. Package WASM with manifest (optional `.rwm` wrapper)
+4. Host loads WASM and enforces capabilities and quotas
 
-The LSP is not just syntactic.
-
-It is:
-
-* spec-aware
-* manifest-aware
-* runtime-aware
-
-It surfaces:
-
-* real execution constraints
-* capability mismatches
-* production-only failures
-* dev/prod divergence
-
-### Architectural Rule #3
-
-> **Editor feedback must never contradict runtime behavior.**
+Hot reload is achieved by replacing the module instance in the host.
 
 ---
 
-## 6. Artifact Flow (Source → Execution)
-
-### Development Flow
-
-```
-.gl source
-   ↓
-Wisp parser
-   ↓
-Canonical AST
-   ↓
-Wisp interpreter
-   ↓
-Live execution (hot reload)
-```
-
-### Production Flow
-
-```
-.gl source
-   ↓
-Canonical AST
-   ↓
-Sparq compiler
-   ↓
-WASM
-   ↓
-.rwm (WASM + manifest)
-   ↓
-Sparq runtime
-   ↓
-Sandboxed execution
-```
-
-The **AST is the hinge** between dev and prod.
-
----
-
-## 7. Module Model
-
-Glyph modules are:
-
-* isolated
-* explicit
-* capability-scoped
-
-A module:
-
-* cannot see the filesystem unless granted
-* cannot access time or randomness implicitly
-* cannot escape its sandbox
-* cannot affect the host except via ABI
-
-The manifest is **authoritative** for permissions.
-
----
-
-## 8. Host Integration Model
-
-Hosts (Go servers, Flutter apps, browsers, games):
-
-* Provide capabilities
-* Enforce policy
-* Control scheduling
-* Own resources
-
-Modules:
-
-* call into hosts
-* never own host state
-* never gain ambient authority
-
-This inversion of control is intentional.
-
----
-
-## 9. Security as Architecture
-
-Security is not a feature layer.
-
-It is enforced at:
-
-1. **Spec level** (what is allowed)
-2. **Tooling level** (what is validated)
-3. **Runtime level** (what is enforced)
-
-No single layer is trusted alone.
-
-### Architectural Rule #4
-
-> **If a module is malicious, the system must still be safe.**
-
----
-
-## 10. Determinism & Reproducibility
-
-When enabled:
-
-* execution is reproducible
-* async scheduling is fixed
-* time/randomness are virtualized
-
-This enables:
-
-* reliable CI
-* replayable simulations
-* safe plugin execution
-
-Determinism is an architectural capability, not an optimization.
-
----
-
-## 11. Repository Architecture Mirrors System Architecture
+## 8. Repository Mapping
 
 ```
 spec/        → contracts (truth)
-wisp/        → dev runtime
-sparq/       → prod runtime
-toolchain/   → orchestration
-lsp/         → editor intelligence
-docs/        → human guidance
-examples/    → reference usage
+sparq/       → Rust compiler (AST → WASM) and packaging
+lsp/         → minimal editor tooling (optional)
+docs/        → architecture and guides
+examples/    → small host integration examples
 ```
 
-### Architectural Rule #5
+---
 
-> **Directory boundaries reflect responsibility boundaries.**
+## 9. What Glyph Is Not
+
+Glyph deliberately avoids:
+
+- Dual-runtime or interpreter-first architectures
+- Custom VMs, JITs, or in-language schedulers
+- Complex type systems, macros, or generics
+- Large package registries or extensive ecosystem governance
+
+Staying small and embeddable is the guiding constraint.
 
 ---
 
-## 12. What Glyph Is Not (Architecturally)
+## 10. Final Invariants
 
-Glyph is **not**:
+1. Specs define semantics.
+2. No ambient authority for modules.
+3. WASM is the production contract.
+4. Tooling validates but does not weaken security.
 
-* a systems language
-* a replacement for Go or Dart
-* a general-purpose web scripting language
-* a large standard library
-* a monolithic runtime
-
-Glyph succeeds by staying *small*.
-
----
-
-## 13. Long-Term Architectural Stability
-
-The architecture is designed so that:
-
-* new runtimes can be added
-* new hosts can embed Glyph
-* tooling can evolve independently
-* specs can version cleanly
-
-Breaking changes are possible — but deliberate.
-
----
-
-## 14. Final Architectural Invariants
-
-These must **never** be broken:
-
-1. Specs define semantics
-2. No ambient authority
-3. WASM is the production contract
-4. Tooling does not weaken security
-5. Editor feedback matches runtime reality
-
-If a proposal violates any of these, it is rejected.
-
----
-
-## Closing Thought
-
-> **Glyph is successful when it disappears into the architecture of larger systems — quietly making them safer, more flexible, and more humane to build.**
+If a proposal violates these invariants, it should be rejected.

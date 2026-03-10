@@ -1,241 +1,128 @@
-# **Glyph — Host ABI Specification**
+# Glyph — Host ABI Specification (Simplified)
 
-> **Status:** Draft (authoritative; required for all runtimes and hosts)
+> Status: Draft — the ABI defines a small, explicit boundary between compiled Glyph modules and host environments.
 
-This document defines the **Application Binary Interface (ABI)** between **Glyph modules** and their **host environments**.
-
-The ABI specifies *how data moves*, *how functions are called*, and *how errors propagate* across the module boundary.
+This document specifies how data and control flow across the WASM-module / host boundary. The ABI intentionally keeps the surface minimal and host-agnostic.
 
 ---
 
-## 1. Purpose of the ABI
+## 1. Purpose
 
-The ABI exists to:
-
-* Enable safe, predictable communication between modules and hosts
-* Allow multiple host languages (Go, Dart, JS) to interoperate
-* Support WASM-first execution
-* Prevent undefined behavior across runtime boundaries
-* Provide a stable contract independent of runtime implementation
-
-If something crosses the module boundary, it must be defined here.
+The ABI enables safe, predictable communication between a Glyph WASM module and its host. It supports WASM-first execution and ensures host-controlled effects and clear memory ownership.
 
 ---
 
-## 2. ABI Design Principles
+## 2. Design Principles
 
-1. **Minimal surface area**
-   Only essential primitives are supported.
-
-2. **Explicit ownership**
-   Memory ownership and lifetimes are always clear.
-
-3. **Copy-free where possible**
-   Zero-copy is preferred for byte buffers.
-
-4. **Host-controlled effects**
-   Modules cannot perform effects without host mediation.
-
-5. **Language-agnostic**
-   ABI does not expose Rust, Go, Dart, or JS types.
+1. Minimal surface area — only essential primitives supported
+2. Explicit ownership and lifetimes
+3. Host-controlled effects — modules cannot perform effects without host mediation
+4. Language-agnostic — ABI does not expose host language internals
 
 ---
 
 ## 3. Execution Context
 
-Each module instance executes with an **Execution Context** provided by the host.
+Each module instance runs with a host-provided execution context containing:
 
-The context includes:
+- capability table
+- resource limits
+- host function registry
+- error handling hooks
 
-* Capability table
-* Resource limits
-* Host function registry
-* Determinism configuration
-* Error handling hooks
-
-The context is immutable during execution.
+This context is provided at instantiation by the host.
 
 ---
 
 ## 4. Supported Value Types
 
-The ABI supports the following value types:
+Core ABI value types:
 
-| ABI Type | Description                   |
-| -------- | ----------------------------- |
-| `i64`    | 64-bit signed integer         |
-| `f64`    | 64-bit floating point         |
-| `bool`   | Boolean                       |
-| `string` | UTF-8 encoded string          |
-| `bytes`  | Raw byte buffer               |
-| `array`  | Ordered list of values        |
-| `map`    | String-keyed associative map  |
-| `null`   | Absence of value              |
+| ABI Type | Description |
+| -------- | ----------- |
+| `i64`    | 64-bit signed integer |
+| `f64`    | 64-bit floating point |
+| `bool`   | Boolean |
+| `string` | UTF-8 encoded string |
+| `bytes`  | Raw byte buffer |
+| `array`  | Ordered list of values |
+| `map`    | String-keyed associative map |
+| `nil`    | Absence of value |
 | `handle` | Opaque host-managed reference |
-| `error`  | Structured error object       |
+| `error`  | Structured error object |
 
-No other types may cross the boundary.
+Only these types cross the module boundary.
 
 ---
 
 ## 5. Strings & Bytes
 
-### Strings
-
-* UTF-8 encoded
-* Passed as `(pointer, length)`
-* Immutable
-
-### Bytes
-
-* Raw byte buffers
-* May be zero-copy if host allows
-* Lifetime rules:
-
-  * Host-owned unless explicitly transferred
-  * Transfer semantics must be declared
+Strings are UTF-8. Bytes are raw buffers; zero-copy semantics are host-dependent and must be declared.
 
 ---
 
 ## 6. Arrays & Maps
 
-### Arrays
-
-* Homogeneous or heterogeneous
-* Passed as references
-* Immutable from module side
-
-### Maps
-
-* Keys are strings
-* Values are any ABI-supported type
-* No implicit ordering guarantees
+Arrays and maps are passed as references or serialized values per host ABI conventions. Maps use string keys.
 
 ---
 
 ## 7. Handles
 
-Handles represent **host-managed objects**.
-
-Examples:
-
-* File descriptors
-* Network connections
-* UI widgets
-* Textures
-* Database connections
-
-Rules:
-
-* Modules cannot inspect handle internals
-* Handles are passed back to host for use
-* Handles may be revoked by host at any time
+Handles represent host-managed objects (files, sockets, UI widgets, textures, etc.). Modules cannot introspect handles; hosts may revoke handles.
 
 ---
 
 ## 8. Host Function Calls
 
-### Invocation Model
-
-* Modules call host functions by **name**
-* Host functions are grouped by capability namespace
-
-Example:
-
-```
-io.read(path: string) -> bytes
-```
+Modules invoke host functions by name within capability namespaces, e.g. `io.read(path) -> bytes`.
 
 Rules:
 
-* Call fails if capability is not granted
-* Arguments are validated at boundary
-* Host controls scheduling and async resolution
+- Calls fail if the capability is not granted
+- Arguments are validated at the boundary
+- Hosts control scheduling and any asynchronous behavior
+
+The ABI does not mandate a particular async model; hosts may expose asynchronous patterns via handles or out-of-band conventions.
 
 ---
 
-## 9. Async & Await at ABI Level
+## 9. Error Model
 
-* Async calls return a **promise handle**
-* Await suspends module execution
-* Host resumes execution when promise resolves
-
-No shared concurrency or threading is exposed.
+Errors are structured values that propagate to the host. Hosts may convert them into native exceptions or error codes.
 
 ---
 
-## 10. Error Model
+## 10. Memory Model
 
-Errors are first-class values.
-
-### Error Object
-
-```json
-{
-  "type": "RuntimeError",
-  "message": "Something went wrong",
-  "details": {}
-}
-```
-
-Rules:
-
-* Errors propagate across ABI boundary
-* Hosts may map errors to native exceptions
-* Unhandled errors terminate module execution
+WASM linear memory is the default. Modules cannot access host memory directly unless a host explicitly exposes shared memory regions with clear lifetime rules.
 
 ---
 
-## 11. Memory Model
+## 11. Determinism
 
-* WASM linear memory is the default
-* Modules cannot access host memory directly
-* Hosts may expose shared memory regions explicitly
-* Memory growth is bounded by manifest limits
+When a host enables deterministic execution, time, randomness, and IO are virtualized by the host. The language itself does not provide a scheduler.
 
 ---
 
-## 12. Determinism Guarantees
+## 12. Versioning & Compatibility
 
-When `execution.deterministic = true`:
-
-* Time, randomness, and IO must be host-provided
-* No implicit nondeterminism allowed
-* Identical inputs must produce identical outputs
+ABI is versioned; breaking changes increment the major version. Hosts and compilers must declare supported ABI versions.
 
 ---
 
-## 13. Versioning & Compatibility
+## 13. Forbidden Behaviors
 
-* ABI is versioned independently
-* Breaking changes increment major version
-* Runtimes must reject incompatible ABI versions
-* Hosts must declare supported ABI versions
+The ABI must never permit arbitrary memory access, host stack manipulation, or unmediated filesystem/network access.
 
 ---
 
-## 14. Forbidden Behaviors
+## 14. Testing
 
-The ABI must never allow:
-
-* Arbitrary memory access
-* Host stack manipulation
-* Pointer arithmetic
-* File system access without capability
-* Network access without capability
+ABI conformance tests are recommended to ensure portability across hosts.
 
 ---
 
-## 15. Testing Requirements
+## 15. Invariant
 
-* ABI conformance tests are mandatory
-* All runtimes must pass the same ABI test suite
-* Fuzzing must target boundary conditions
-
----
-
-## 16. Invariant
-
-> **If two hosts implement this ABI correctly, the same module must behave identically on both.**
-
-This guarantees portability.
+If two hosts implement this ABI correctly, a module should exhibit consistent observable behavior.

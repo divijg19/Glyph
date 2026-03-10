@@ -1,184 +1,27 @@
-# **Glyph Wisp — Development Mode**
+# Development Workflow (replaces historical dev interpreters)
 
-> **Status:** Draft (authoritative for development-time behavior)
+> Note: the repository previously contained a separate Dart-based development interpreter. Glyph's canonical approach is now WASM-first; development workflows should favor fast compilation to WASM and host-driven module replacement.
 
-This document specifies **Wisp**, the **development-mode interpreter** for Glyph.
+## Purpose
 
-Wisp exists to optimize **developer experience**: fast iteration, hot reload, and deep Flutter integration.
-It is intentionally **not** a production runtime.
+This document describes the recommended development workflow: fast iteration via quick WASM builds and hot-reloading modules in the host. Glyph does not depend on a separate interpreter for dev-mode execution.
 
----
+## Recommended Dev Flow
 
-## 1. Role of Wisp
+1. Edit Glyph source
+2. Compile with the Rust compiler (`sparq`) to a WASM module
+3. Reload the module in a running host (hot-replace the WASM instance)
 
-Wisp is the **developer-facing execution engine** for Glyph.
+Hosts may provide convenience tooling (file watchers, small runtimes) to streamline the cycle, but such tooling should still use the WASM artifacts and respect manifest capabilities.
 
-Its responsibilities are to:
+## REPL & Debugging
 
-* Parse Glyph source into the canonical AST
-* Interpret the AST directly
-* Provide instant feedback (REPL, hot reload)
-* Integrate seamlessly with Flutter
-* Produce accurate source maps and diagnostics
-* Mirror Sparq semantics as closely as possible
+REPLs or quick-eval tools are allowed for developer convenience, but they must not diverge from the canonical compiler semantics. Hosts should offer source-mapped errors and simple inspection hooks.
 
-Wisp is written in **Dart**.
+## Hot Reload Guarantees
 
----
+Hot reload by module replacement is a best-effort developer feature. Hosts decide whether to preserve state or fully restart modules when swapping WASM instances.
 
-## 2. Why a Separate Dev Runtime Exists
+## Deprecated: Dart-based Dev Interpreter
 
-Production runtimes optimize for:
-
-* safety
-* determinism
-* performance
-* sandboxing
-
-Development workflows optimize for:
-
-* iteration speed
-* debuggability
-* live feedback
-* UI experimentation
-
-Wisp exists so Sparq does not need to compromise.
-
----
-
-## 3. Execution Model
-
-* AST is interpreted directly (no WASM)
-* Single-threaded execution
-* Async/await supported via Dart futures
-* Host effects routed through Dart bindings
-* No hard resource limits by default
-
-Semantics must match Sparq wherever possible.
-
----
-
-## 4. Parsing & AST Handling
-
-* Wisp is allowed to:
-
-  * parse Glyph source
-  * emit canonical AST
-  * serialize AST for tooling
-
-* Wisp must **not**:
-
-  * invent semantics
-  * perform optimizations
-  * diverge from the spec
-
-All parsing behavior must conform to `LANGUAGE-SPEC.md`.
-
----
-
-## 5. Hot Reload Semantics
-
-Hot reload is a first-class feature.
-
-Rules:
-
-* Source changes trigger re-parse → AST diff
-* State may be preserved where safe
-* Function bodies may be replaced live
-* Hosts may choose reset vs patch semantics
-
-Hot reload behavior is **best-effort**, not guaranteed identical to cold start.
-
----
-
-## 6. Flutter Integration
-
-Wisp provides tight Flutter integration via:
-
-### ScriptWidget
-
-* A Flutter widget bound to a Glyph script
-* Rebuilds UI on script updates
-* Allows script-driven UI logic
-* Ideal for rapid prototyping and experimentation
-
-Wisp is the **recommended way to develop Glyph-powered Flutter UIs**.
-
----
-
-## 7. REPL
-
-Wisp provides a REPL with:
-
-* Incremental evaluation
-* History
-* Pretty-printed values
-* Error highlighting
-* Async support
-
-The REPL uses the same interpreter as the app runtime.
-
----
-
-## 8. Error Reporting
-
-Wisp prioritizes readable errors:
-
-* Clear messages
-* Source spans
-* Call stacks
-* Suggestions when possible
-
-Errors should help developers fix problems quickly.
-
----
-
-## 9. Debugging Support
-
-Wisp supports:
-
-* Breakpoints (optional)
-* Step execution (future)
-* Variable inspection
-* AST inspection
-
-Debugging features are dev-only.
-
----
-
-## 10. Limitations (By Design)
-
-Wisp does **not** guarantee:
-
-* Deterministic execution
-* Strict resource enforcement
-* Production-level performance
-* Strong sandboxing
-
-Developers must test production behavior via Sparq.
-
----
-
-## 11. Consistency Requirements
-
-* Wisp and Sparq must share a common test suite
-* Any semantic divergence must be documented
-* Wisp must fail loudly when encountering unsupported production-only features
-
----
-
-## 12. Tooling Integration
-
-Wisp integrates with:
-
-* `rig dev`
-* glyph-lsp (via AST)
-* Flutter tooling (hot reload, logs)
-
-Wisp is a **tool**, not a deployment target.
-
----
-
-## 13. Invariant
-
-> **Wisp must make Glyph joyful to use without weakening Sparq’s guarantees.**
+Any historical Dart-based interpreter or tooling in the tree is considered deprecated under the simplified WASM-first scope. Focus new development on the Rust-based compilation and WASM module workflow.

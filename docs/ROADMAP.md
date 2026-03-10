@@ -1,219 +1,61 @@
-# **Glyph — Roadmap**
+# Glyph — Roadmap (Simplified)
 
-This roadmap outlines the **intended evolution of Glyph** from early development to a stable, production-ready ecosystem.
+This roadmap focuses on a compact, achievable path to a WASM-first, embeddable scripting language.
 
-Glyph is a long-horizon project.
-The roadmap emphasizes **correct sequencing**, **spec-first development**, and **ecosystem coherence** over speed.
+## Guiding Principles
 
----
+- Spec-first: define a small, stable spec before expanding features
+- Dev experience: iterate on fast build/reload workflows using WASM module replacement
+- Security-first: capability-based manifests and host-enforced quotas
 
-## 🧭 Guiding Principles for the Roadmap
+## Phase 0 — Foundation
 
-* **Spec before implementation**
-* **Dev experience before optimization**
-* **Security before convenience**
-* **WASM before native**
-* **Tooling is part of the language**
+Goal: establish core specs and a minimal compiler.
 
-Milestones may shift, but ordering should not.
+Deliverables:
 
----
+- Canonical specs: `LANGUAGE-SPEC.md`, `AST-SPEC.md`, `MANIFEST-SPEC.md`, `ABI-SPEC.md`
+- `sparq/`: Rust compiler that emits WASM
+- Basic examples showing embedding in a Rust host and in the browser
 
-## 🟢 Phase 0 — Foundation (Now)
+Exit criteria: clear, versioned specs and reproducible WASM artifacts.
 
-**Goal:** Establish a solid conceptual and structural base.
+## Phase 1 — Minimal Tooling & Examples
 
-### Deliverables
+Goal: make Glyph practical to embed and iterate with.
 
-* Canonical repository structure
-* Core documentation:
+Deliverables:
 
-  * `VISION.md`
-  * `ARCHITECTURE.md`
-  * `SECURITY.md`
-* Initial specs:
+- Fast compile & simple hot-reload workflow (WASM module replacement)
+- Small example hosts (Rust host, browser wrapper)
+- Minimal editor support (lightweight LSP with syntax/manifest checks)
+- Test suite for core language features
 
-  * `LANGUAGE-SPEC.md`
-  * `AST-SPEC.md`
-  * `MANIFEST-SPEC.md`
-  * `ABI-SPEC.md`
-* Basic CI skeleton
-* Governance files (CONTRIBUTING, CoC)
+Exit criteria: developers can compile, load, and iterate on modules easily.
 
-### Exit Criteria
+## Phase 2 — Security & Stabilization
 
-* Clear, written definition of Glyph
-* No ambiguity about ownership or architecture
+Goal: harden runtime interactions and stabilize the v1 spec.
 
----
+Deliverables:
 
-## 🟢 Phase 1 — Wisp MVP (Dev Experience First)
+- Capability enforcement guidance for hosts
+- Resource quota recommendations and tests
+- Golden tests for language semantics
+- Documentation and migration notes
 
-**Goal:** Make Glyph *usable and delightful* in development.
+Exit criteria: clear v1 promise and stable core behavior.
 
-### Deliverables
+## Non-Goals (explicit)
 
-* Wisp (Dart) interpreter
-* Parser → canonical AST
-* REPL
-* Hot reload
-* ScriptWidget for Flutter
-* Basic standard library (io.log, math, collections)
-* Golden AST test suite
+Glyph will not, in core, pursue:
 
-### Exit Criteria
+- Interpreter-first dual-runtime architectures
+- JITs, macros, generics, or complex type systems
+- Large package registries or centralized ecosystem control
 
-* Live-editable Glyph scripts inside Flutter
-* Stable AST emitted from source
-* Developers can iterate without friction
+These would contradict the small embeddable scope.
 
 ---
 
-## 🟡 Phase 2 — Sparq Alpha (WASM First)
-
-**Goal:** Prove production viability with WASM artifacts.
-
-### Deliverables
-
-* Sparq compiler (AST → WASM)
-* Minimal runtime using WASM engine
-* `.rwm` packaging
-* Manifest validation
-* Go/Dart host shims
-* Simple execution via toolchain
-
-### Exit Criteria
-
-* Same Glyph code runs in:
-
-  * Wisp (dev)
-  * WASM (prod)
-* Artifacts are portable and reproducible
-
----
-
-## 🟡 Phase 3 — Toolchain & LSP
-
-**Goal:** Make Glyph feel like a real language.
-
-### Deliverables
-
-* `glyph` CLI (Go)
-* rig integration
-* Full LSP server (Go):
-
-  * diagnostics
-  * completions
-  * navigation
-  * manifest awareness
-* Editor extensions (VS Code first)
-* Deterministic build pipeline
-
-### Exit Criteria
-
-* End-to-end workflow:
-
-  ```
-  edit → diagnose → build → run
-  ```
-* Tooling reflects runtime behavior accurately
-
----
-
-## 🟠 Phase 4 — Security Hardening & Performance
-
-**Goal:** Production readiness.
-
-### Deliverables
-
-* Capability enforcement in runtime
-* Resource quotas (CPU, memory, wall-time)
-* Deterministic execution mode
-* Fuzz testing
-* Sandbox escape test suite
-* Runtime metrics & observability
-
-### Exit Criteria
-
-* Untrusted modules can run safely
-* Clear security guarantees documented and enforced
-
----
-
-## 🟠 Phase 5 — Ecosystem & Registry
-
-**Goal:** Enable sharing and reuse.
-
-### Deliverables
-
-* Module registry service
-* Artifact signing
-* Version resolution
-* Policy enforcement
-* Example libraries
-* Documentation expansion
-
-### Exit Criteria
-
-* Modules can be published, discovered, and reused safely
-
----
-
-## 🔵 Phase 6 — Stabilization (v1.0)
-
-**Goal:** Commit to long-term compatibility.
-
-### Deliverables
-
-* Spec freeze (LANGUAGE, AST, ABI, MANIFEST)
-* Compatibility guarantees
-* Migration tooling
-* Performance tuning
-* Comprehensive docs & tutorials
-
-### Exit Criteria
-
-* Clear v1.0 promise
-* Production users onboarded
-* Low churn in core specs
-
----
-
-## 🔵 Phase 7 — Growth & Expansion (Post–v1.0)
-
-**Goal:** Sustainable evolution.
-
-### Possible Directions
-
-* Optional static typing layer
-* Macro system (AST-level)
-* WASM threads support
-* Advanced debugging & tracing
-* Certified modules
-* Commercial support options
-
-All expansion must respect v1 guarantees.
-
----
-
-## 🚫 Explicit Non-Roadmap Items
-
-Glyph does **not** plan to:
-
-* Become a systems language
-* Replace Go, Rust, or Dart
-* Compete with JavaScript for general web scripting
-* Accumulate a large standard library
-
----
-
-## 🧠 Final Note
-
-> **Glyph succeeds if it quietly becomes indispensable.**
-
-Progress is measured by:
-
-* fewer hacks
-* fewer unsafe embeds
-* fewer one-off DSLs
-* better developer confidence
+Further details live in `VISION.md` and the `spec/` directory.
