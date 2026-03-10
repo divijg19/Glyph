@@ -1,0 +1,11 @@
+fn add(a, b) {
+return a + b
+}
+
+fn square(x) {
+return x * x
+}
+
+fn main() {
+return square(add(2, 3))
+}
